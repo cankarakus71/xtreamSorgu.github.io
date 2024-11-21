@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>patr0n Xtream Bilgileri Çekici v0.1</title>
+ 
+    <style>
+        body {
+            background-color: #121212;
+            color: #e0e0e0;
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+        }
+
+        h1 {
+            color: #ffffff;
+            text-align: center;
+        }
+
+        input[type="text"] {
+            width: calc(100% - 22px);
+            padding: 10px;
+            margin: 10px 0;
+            border: 1px solid #444;
+            border-radius: 5px;
+            background-color: #1e1e1e;
+            color: #ffffff;
+        }
+
+        input[type="text"]:focus {
+            outline: none;
+            border-color: #3f51b5;
+        }
+
+        button {
+            background-color: #3f51b5;
+            color: white;
+            padding: 10px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            width: 100%;
+            font-size: 16px;
+        }
+
+        button:hover {
+            background-color: #5c6bc0;
+        }
+
+        #result {
+            margin-top: 20px;
+            padding: 10px;
+            border-radius: 5px;
+            background-color: #1e1e1e;
+        }
+
+        p {
+            margin: 5px 0;
+        }
+    </style>
+    <script>
+        async function buildXtreamInfoFromM3U() {
+            const m3uLink = document.getElementById("m3uLink").value;
+
+            // M3U bağlantısından domain, username ve password ayıklama
+            const urlParams = new URLSearchParams(new URL(m3uLink).search);
+            const domain = new URL(m3uLink).origin;
+            const username = urlParams.get('username');
+            const password = urlParams.get('password');
+
+            if (!username || !password) {
+                alert("Geçersiz M3U linki: Kullanıcı adı veya şifre bulunamadı.");
+                return;
+            }
+
+            const address = `${domain}/player_api.php?username=${username}&password=${password}`;
+
+            try {
+                const response = await fetch(address, {
+                    method: 'GET',
+                    headers: {
+                        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; WOW64; rv:55.0) Gecko/20100101 Firefox/55.0"
+                    }
+                });
+
+                if (response.ok) {
+                    const userResult = await response.json();
+                    getXtreamInfo(domain, username, password, userResult);
+                } else {
+                    alert(`Hata: Sunucudan geçerli bir yanıt alınamadı. Durum Kodu: ${response.status}`);
+                    buildXtreamInfoPanel(domain, username, password);
+                }
+            } catch (error) {
+                alert(`Bağlantı hatası: ${error}`);
+                buildXtreamInfoPanel(domain, username, password);
+            }
+        }
+
+        function getXtreamInfo(domain, username, password, userResult) {
+            const info = `
+                <h3>Xtream Bilgileri:</h3>
+                <p>Kullanıcı Adı: ${username}</p>
+                <p>Şifre: ${password}</p>
+                <p>Durum: ${userResult.user_info?.status === 'Active' ? 'Aktif' : 'Aktif Değil'}</p>
+                <p>Hesap Oluşturulma Tarihi: ${new Date(userResult.user_info?.created_at * 1000).toLocaleString() || 'Bilinmiyor'}</p>
+                <p>Hesap Son Kullanma Tarihi: ${new Date(userResult.user_info?.exp_date * 1000).toLocaleString() || 'Bilinmiyor'}</p>
+                <p>Aktif Kullanıcı Sayısı: ${userResult.user_info?.active_cons || 'Bilinmiyor'}</p>
+                <p>Maksimum Kullanıcı Sayısı: ${userResult.user_info?.max_connections || 'Bilinmiyor'}</p>
+                <p>Deneme Hesabı mı: ${userResult.user_info?.isTrial === 1 ? 'Evet' : 'Hayır'}</p>
+            `;
+            document.getElementById("result").innerHTML = info;
+        }
+
+        function buildXtreamInfoPanel(domain, username, password) {
+            const info = `
+                <h3>Hata:</h3>
+                <p>Xtream bilgileri alınamadı. Hata ile karşılaşıldı.</p>
+                <p>Domain: ${domain}</p>
+                <p>Kullanıcı Adı: ${username}</p>
+                <p>Şifre: ${password}</p>
+            `;
+            document.getElementById("result").innerHTML = info;
+        }
+    </script>
+</head>
+<body>
+    <h1>patr0n™ | Xtream Bilgileri Alma</h1>
+    <input type="text" id="m3uLink" placeholder="M3U Linkini Girin" />
+    <button onclick="buildXtreamInfoFromM3U()">Bilgileri Al</button>
+    <div id="result"></div>
+</body>
+</html>
