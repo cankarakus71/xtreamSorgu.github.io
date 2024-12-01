@@ -1,10 +1,9 @@
-<!DOCTYPE html>
+şey yapabilir miyiz gpt direkt http kodunu çalıştırma imkanımız var mı ? <!DOCTYPE html>
 <html lang="tr">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>patr0n Xtream Bilgileri Çekici v0.1</title>
- 
+    <title>patr0n Xtream Bilgileri Çekici</title>
     <style>
         body {
             background-color: #121212;
@@ -12,123 +11,210 @@
             font-family: Arial, sans-serif;
             margin: 0;
             padding: 20px;
+            display: flex;
+            flex-direction: row;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 20px;
         }
 
-        h1 {
+        .column {
+            width: 48%;
+            background-color: #1e1e1e;
+            border-radius: 5px;
+            padding: 15px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+        }
+
+        .column h1 {
             color: #ffffff;
             text-align: center;
         }
 
-        input[type="text"] {
-            width: calc(100% - 22px);
-            padding: 10px;
+        textarea {
+            width: 100%;
+            height: 150px;
             margin: 10px 0;
-            border: 1px solid #444;
             border-radius: 5px;
-            background-color: #1e1e1e;
+            padding: 7px;
+            background-color: #2a2a2a;
             color: #ffffff;
-        }
-
-        input[type="text"]:focus {
-            outline: none;
-            border-color: #3f51b5;
+            border: none;
+            resize: none;
+            font-family: Arial, sans-serif;
+            font-size: 16px;
         }
 
         button {
+            display: block;
+            width: 100%;
+            padding: 15px;
+            font-size: 16px;
+            border-radius: 5px;
+            border: none;
             background-color: #3f51b5;
             color: white;
-            padding: 10px;
-            border: none;
-            border-radius: 5px;
             cursor: pointer;
-            width: 100%;
-            font-size: 16px;
+            margin-top: 10px;
         }
 
         button:hover {
             background-color: #5c6bc0;
         }
 
-        #result {
-            margin-top: 20px;
-            padding: 10px;
-            border-radius: 5px;
+        #console {
+            height: 200px;
+            margin-top: 10px;
+            padding: 15px;
             background-color: #1e1e1e;
+            color: #00ff00;
+            font-family: monospace;
+            font-size: 14px;
+            border: 1px solid #333;
+            border-radius: 5px;
+            overflow-y: auto;
+            white-space: pre-wrap;
         }
 
-        p {
+        .xtream-info-container {
+            height: 400px;
+            overflow-y: auto;
+            padding: 10px;
+            background-color: #2a2a2a;
+            border-radius: 5px;
+        }
+
+        .xtream-info {
+            margin-bottom: 15px;
+            padding: 10px;
+            background-color: #3a3a3a;
+            border-radius: 5px;
+            font-size: 16px;
+            color: #ffffff;
+        }
+
+        .xtream-info p {
             margin: 5px 0;
         }
     </style>
     <script>
-        async function buildXtreamInfoFromM3U() {
-            const m3uLink = document.getElementById("m3uLink").value;
+        const activeLinks = [];
 
-            // M3U bağlantısından domain, username ve password ayıklama
-            const urlParams = new URLSearchParams(new URL(m3uLink).search);
-            const domain = new URL(m3uLink).origin;
-            const username = urlParams.get('username');
-            const password = urlParams.get('password');
+        // Sağ tıklamayı engelleme
+        document.addEventListener('contextmenu', function (e) {
+            e.preventDefault(); // Sağ tıklama menüsünü engeller
+        });
 
-            if (!username || !password) {
-                alert("Geçersiz M3U linki: Kullanıcı adı veya şifre bulunamadı.");
-                return;
+        async function checkLinks() {
+            const inputTextarea = document.getElementById("inputLinks");
+            const consoleDiv = document.getElementById("console");
+            const xtreamInfoContainer = document.getElementById("xtreamInfoContainer");
+            const links = inputTextarea.value.split("\n").map(line => line.trim()).filter(line => line);
+
+            consoleDiv.textContent = ""; // Konsolu sıfırla
+            xtreamInfoContainer.innerHTML = ""; // Xtream bilgilerini sıfırla
+            activeLinks.length = 0; // Aktif link listesini sıfırla
+
+            for (const link of links) {
+                consoleDiv.textContent += Taranıyor: ${link}\n;
+                const result = await fetchXtreamInfo(link);
+                if (result) {
+                    consoleDiv.textContent += ✅ Bilgiler alındı: ${link}\n;
+                    appendXtreamInfo(xtreamInfoContainer, result, link);
+                    activeLinks.push(link); // Aktif linki listeye ekle
+                } else {
+                    consoleDiv.textContent += ❌ Bilgi alınamadı: ${link}\n;
+                    appendXtreamError(xtreamInfoContainer, link);
+                }
+                consoleDiv.scrollTop = consoleDiv.scrollHeight;
             }
+            consoleDiv.textContent += "\nTarama tamamlandı.";
+        }
 
-            const address = `${domain}/player_api.php?username=${username}&password=${password}`;
-
+        async function fetchXtreamInfo(m3uLink) {
             try {
+                const urlParams = new URLSearchParams(new URL(m3uLink).search);
+                const domain = new URL(m3uLink).origin;
+                const username = urlParams.get('username');
+                const password = urlParams.get('password');
+
+                if (!username || !password) {
+                    return null;
+                }
+
+                const address = ${domain}/player_api.php?username=${username}&password=${password};
                 const response = await fetch(address, {
                     method: 'GET',
                     headers: {
-                        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; WOW64; rv:55.0) Gecko/20100101 Firefox/55.0"
+                        "User-Agent": "Mozilla/5.0"
                     }
                 });
 
                 if (response.ok) {
                     const userResult = await response.json();
-                    getXtreamInfo(domain, username, password, userResult);
-                } else {
-                    alert(`Hata: Sunucudan geçerli bir yanıt alınamadı. Durum Kodu: ${response.status}`);
-                    buildXtreamInfoPanel(domain, username, password);
+                    return userResult.user_info; // Kullanıcı bilgilerini döndür
                 }
+                return null;
             } catch (error) {
-                alert(`Bağlantı hatası: ${error}`);
-                buildXtreamInfoPanel(domain, username, password);
+                console.error(Bağlantı hatası: ${error});
+                return null;
             }
         }
 
-        function getXtreamInfo(domain, username, password, userResult) {
-            const info = `
-                <h3>Xtream Bilgileri:</h3>
-                <p>Kullanıcı Adı: ${username}</p>
-                <p>Şifre: ${password}</p>
-                <p>Durum: ${userResult.user_info?.status === 'Active' ? 'Aktif' : 'Aktif Değil'}</p>
-                <p>Hesap Oluşturulma Tarihi: ${new Date(userResult.user_info?.created_at * 1000).toLocaleString() || 'Bilinmiyor'}</p>
-                <p>Hesap Son Kullanma Tarihi: ${new Date(userResult.user_info?.exp_date * 1000).toLocaleString() || 'Bilinmiyor'}</p>
-                <p>Aktif Kullanıcı Sayısı: ${userResult.user_info?.active_cons || 'Bilinmiyor'}</p>
-                <p>Maksimum Kullanıcı Sayısı: ${userResult.user_info?.max_connections || 'Bilinmiyor'}</p>
-                <p>Deneme Hesabı mı: ${userResult.user_info?.isTrial === 1 ? 'Evet' : 'Hayır'}</p>
-            `;
-            document.getElementById("result").innerHTML = info;
+        function appendXtreamInfo(container, info, link) {
+            const div = document.createElement("div");
+            div.className = "xtream-info";
+            div.innerHTML =  
+                <p><strong>Link:</strong> ${link}</p>
+                <p><strong>Kullanıcı Adı:</strong> ${info.username}</p>
+                <p><strong>Şifre:</strong> ${info.password}</p>
+                <p><strong>Hesap Durumu:</strong> ${info.status}</p>
+                <p><strong>Oluşturulma Tarihi:</strong> ${info.created_at || "Bilinmiyor"}</p>
+                <p><strong>Bitiş Tarihi:</strong> ${info.exp_date ? new Date(info.exp_date * 1000).toLocaleString() : "Bilinmiyor"}</p>
+                <p><strong>Maksimum Kullanıcı Sayısı:</strong> ${info.max_connections || "Bilinmiyor"}</p>
+                <p><strong>Aktif Kullanıcılar:</strong> ${info.active_cons || "Bilinmiyor"}</p>
+            ;
+            container.appendChild(div);
         }
 
-        function buildXtreamInfoPanel(domain, username, password) {
-            const info = `
-                <h3>Hata:</h3>
-                <p>Xtream bilgileri alınamadı. Hata ile karşılaşıldı.</p>
-                <p>Domain: ${domain}</p>
-                <p>Kullanıcı Adı: ${username}</p>
-                <p>Şifre: ${password}</p>
-            `;
-            document.getElementById("result").innerHTML = info;
+        function appendXtreamError(container, link) {
+            const div = document.createElement("div");
+            div.className = "xtream-info";
+            div.innerHTML =  
+                <p><strong>Link:</strong> ${link}</p>
+                <p style="color: red;"><strong>Hata:</strong> Bilgiler alınamadı.</p>
+            ;
+            container.appendChild(div);
+        }
+
+        function copyActiveLinks() {
+            if (activeLinks.length === 0) {
+                alert("Kopyalanacak aktif link bulunamadı.");
+                return;
+            }
+
+            const textToCopy = activeLinks.join("\n");
+            navigator.clipboard.writeText(textToCopy).then(() => {
+                alert("Aktif linkler kopyalandı!");
+            }).catch(err => {
+                console.error("Kopyalama hatası:", err);
+            });
         }
     </script>
 </head>
 <body>
-    <h1>patr0n™ | Xtream Bilgileri Alma</h1>
-    <input type="text" id="m3uLink" placeholder="M3U Linkini Girin" />
-    <button onclick="buildXtreamInfoFromM3U()">Bilgileri Al</button>
-    <div id="result"></div>
+    <div class="column">
+        <h1>patr0n™ | M3U Link Tarayıcı</h1>
+        <textarea id="inputLinks" placeholder="Dilerseniz tek link dilerseniz toplu link ekleyin.."></textarea>
+        <button onclick="checkLinks()">Linkleri Tara</button>
+        <div id="console"></div>
+    </div>
+    <div class="column">
+        <h1>Xtream Bilgileri</h1>
+        <div id="xtreamInfoContainer" class="xtream-info-container">
+            <p>Bilgiler burada görünecek...</p>
+        </div>
+        <button onclick="copyActiveLinks()">Aktif Linkleri Kopyala</button>
+    </div>
 </body>
 </html>
